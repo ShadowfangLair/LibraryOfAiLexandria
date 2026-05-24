@@ -77,14 +77,14 @@ namespace LibraryOfAiLexandria
                         max_length = 200,
                         min_length = 1,
                         tail_free_sampling = 1,
-                        repetition_penalty = 1.15,
+                        repetition_penalty = 1.35,
                         repetition_penalty_range = 2048,
                         repetition_penalty_slope = 0.09,
+                        repetition_penalty_presence = 0.05,
                         top_a = 1,
                         top_p = 1,
                         top_k = 0,
-                        typical_p = 1,
-                        stop_sequences = stopSequences
+                        typical_p = 1
                     }
                 };
                 jsonPayload = JsonSerializer.Serialize(naiBody);
