@@ -17,4 +17,4 @@ Name: "{group}\Library of Ai‑Lexandria"; Filename: "{app}\LibraryOfAiLexandria
 Name: "{group}\Uninstall Library of Ai‑Lexandria"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\LibraryOfAiLexandria.exe"; Description: "Launch Library of Ai‑Lexandria now"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\LibraryOfAiLexandria.exe"; Description: "Launch Library of Ai‑Lexandria now"; Flags: nowait postinstall
