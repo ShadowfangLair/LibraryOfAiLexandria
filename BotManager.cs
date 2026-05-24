@@ -1,52 +1,284 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
+using Discord;
+using Discord.WebSocket;
+using Discord.Webhook;
 
 namespace LibraryOfAiLexandria
 {
     public class BotManager
     {
-        private readonly Dictionary<int, DiscordBotInstance> _activeBots = new();
+        private DiscordSocketClient? _client;
+        private readonly Dictionary<int, CharacterInstance> _characters = new();
         private readonly Action<string> _logCallback;
+        private string _currentToken = string.Empty;
+
+        public bool IsMasterConnected => _client?.ConnectionState == ConnectionState.Connected;
 
         public BotManager(Action<string> logCallback)
         {
             _logCallback = logCallback;
         }
 
-        public async Task StartBotAsync(int index, BotConfig config)
+        public async Task StartMasterAsync(string token)
         {
-            if (_activeBots.ContainsKey(index))
+            if (string.IsNullOrWhiteSpace(token))
             {
-                await StopBotAsync(index);
+                _logCallback("[Master] Cannot start: Discord Token is empty.");
+                return;
             }
 
-            var instance = new DiscordBotInstance(config, _logCallback);
-            _activeBots[index] = instance;
-            await instance.StartAsync();
-        }
-
-        public async Task StopBotAsync(int index)
-        {
-            if (_activeBots.TryGetValue(index, out var instance))
+            if (_client != null && IsMasterConnected && _currentToken == token)
             {
-                await instance.StopAsync();
-                _activeBots.Remove(index);
+                // Already connected with same token
+                return;
+            }
+
+            await StopMasterAsync();
+
+            _currentToken = token;
+            
+            var discordConfig = new DiscordSocketConfig
+            {
+                GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent
+            };
+            
+            _client = new DiscordSocketClient(discordConfig);
+            _client.Log += LogAsync;
+            _client.MessageReceived += MessageReceivedAsync;
+
+            try
+            {
+                await _client.LoginAsync(TokenType.Bot, token);
+                await _client.StartAsync();
+                _logCallback("[Master] Connecting to Discord...");
+            }
+            catch (Exception ex)
+            {
+                _logCallback($"[Master] Failed to start: {ex.Message}");
             }
         }
 
-        public async Task StopAllAsync()
+        public async Task StopMasterAsync()
         {
-            var tasks = _activeBots.Keys.ToList().Select(StopBotAsync);
-            await Task.WhenAll(tasks);
+            if (_client != null)
+            {
+                try
+                {
+                    _client.Log -= LogAsync;
+                    _client.MessageReceived -= MessageReceivedAsync;
+                    await _client.StopAsync();
+                    await _client.LogoutAsync();
+                    _logCallback("[Master] Disconnected.");
+                }
+                catch (Exception ex)
+                {
+                    _logCallback($"[Master] Error during stop: {ex.Message}");
+                }
+                finally
+                {
+                    _client.Dispose();
+                    _client = null;
+                }
+            }
         }
 
+        public void StartBot(int index, BotConfig config)
+        {
+            _characters[index] = new CharacterInstance(config, _logCallback);
+            _logCallback($"[Master] Loaded character plugin: {config.Name} (Channel: {config.ChannelId})");
+        }
+
+        public void StopBot(int index)
+        {
+            if (_characters.TryGetValue(index, out var chara))
+            {
+                _logCallback($"[Master] Unloaded character plugin: {chara.Config.Name}");
+                _characters.Remove(index);
+            }
+        }
+
+        private Task LogAsync(LogMessage msg)
+        {
+            _logCallback($"[Master] {msg.Message ?? msg.Exception?.Message}");
+            return Task.CompletedTask;
+        }
+
+        private async Task MessageReceivedAsync(SocketMessage message)
+        {
+            // Ignore bots
+            if (message.Author.IsBot) return;
+
+            // Must be in a text channel to use webhooks easily (and threads are IThreadChannel which implement ITextChannel sort of, but actually they don't, they are IThreadChannel but Webhooks can be sent to Threads in Discord.Net if we provide the ThreadId!)
+            if (message.Channel is not ITextChannel textChannel && message.Channel is not IThreadChannel) return;
+
+            // Check if this is a command for PAIGE to create a room
+            if (message.MentionedUsers.Any(u => u.Id == _client?.CurrentUser?.Id) && message.Content.ToLower().Contains("create room with"))
+            {
+                await HandleCreateRoomCommandAsync(message);
+                return;
+            }
+
+            // Check for Auto-Ingestion of SillyTavern Character Cards
+            if (message.Attachments.Any())
+            {
+                await HandleAutoIngestionAsync(message);
+            }
+
+            // Find if any character is confined to this channel
+            var channelStr = message.Channel.Id.ToString();
+            var character = _characters.Values.FirstOrDefault(c => c.Config.ChannelId == channelStr);
+
+            if (character == null)
+            {
+                // No character assigned to this channel
+                return;
+            }
+
+            var cleanMessage = message.CleanContent.Trim();
+            
+            // Set typing indicator
+            using var typing = message.Channel.EnterTypingState();
+
+            // Generate Response from Character
+            var response = await character.GenerateResponseAsync(message.Author.Username, cleanMessage);
+
+            // Send via Webhook!
+            await SendViaWebhookAsync(message.Channel, character.Config.Name, character.Config.AvatarUrl, response);
+        }
+
+        private async Task HandleCreateRoomCommandAsync(SocketMessage message)
+        {
+            try
+            {
+                var targetName = message.Content.Substring(message.Content.ToLower().IndexOf("create room with") + 16).Trim();
+                var character = _characters.Values.FirstOrDefault(c => c.Config.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+
+                if (character == null)
+                {
+                    await message.Channel.SendMessageAsync($"Sorry, I couldn't find a character plugin named '{targetName}'.");
+                    return;
+                }
+
+                if (message.Channel is ITextChannel textChannel)
+                {
+                    var thread = await textChannel.CreateThreadAsync($"Private RP: {message.Author.Username} & {character.Config.Name}", ThreadType.PublicThread, ThreadArchiveDuration.OneDay, message);
+                    
+                    // Assign the character to the new thread!
+                    character.Config.ChannelId = thread.Id.ToString();
+                    
+                    await thread.SendMessageAsync($"Welcome {message.Author.Mention}! I have summoned {character.Config.Name} to this room for a private roleplay. Have fun!");
+                    _logCallback($"[Master] Created private thread {thread.Id} for {character.Config.Name}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logCallback($"[Master] Failed to create room: {ex.Message}");
+            }
+        }
+
+        private async Task HandleAutoIngestionAsync(SocketMessage message)
+        {
+            var attachment = message.Attachments.FirstOrDefault(a => a.Filename.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || a.Filename.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+            if (attachment == null) return;
+
+            try
+            {
+                var tempFile = Path.Combine(Path.GetTempPath(), attachment.Filename);
+                using var client = new System.Net.Http.HttpClient();
+                var response = await client.GetAsync(attachment.Url);
+                using var fs = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None);
+                await response.Content.CopyToAsync(fs);
+                fs.Close();
+
+                var newConfig = SillyTavernImporter.ImportFromCard(tempFile);
+                if (newConfig != null && !string.IsNullOrWhiteSpace(newConfig.Name))
+                {
+                    // Card found! Auto-load it and assign it to this channel!
+                    newConfig.ChannelId = message.Channel.Id.ToString();
+                    if (attachment.Filename.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                    {
+                        newConfig.AvatarUrl = attachment.Url;
+                    }
+
+                    int newId = _characters.Count > 0 ? _characters.Keys.Max() + 1 : 0;
+                    _characters[newId] = new CharacterInstance(newConfig, _logCallback);
+                    
+                    await message.Channel.SendMessageAsync($"*[P.A.I.G.E.] Automatically detected and imported character plugin: **{newConfig.Name}**! They are now confined to this channel.*");
+                    
+                    // Trigger UI update by logging (UI reads logs, but saving to bots.json is better. For now we just load it dynamically.)
+                    _logCallback($"[Master] Auto-ingested Character Card '{newConfig.Name}' into Memory Slot {newId} in channel {message.Channel.Id}");
+                }
+                
+                File.Delete(tempFile);
+            }
+            catch (Exception ex)
+            {
+                _logCallback($"[Master] Failed to auto-ingest card: {ex.Message}");
+            }
+        }
+
+        private async Task SendViaWebhookAsync(ISocketMessageChannel channel, string username, string avatarUrl, string content)
+        {
+            try
+            {
+                ITextChannel? baseChannel = channel as ITextChannel;
+                SocketThreadChannel? thread = channel as SocketThreadChannel;
+
+                if (baseChannel == null && thread != null)
+                {
+                    baseChannel = thread.ParentChannel as ITextChannel;
+                }
+
+                if (baseChannel == null)
+                {
+                    // Fallback to normal send if we really can't get a webhook going
+                    await channel.SendMessageAsync($"**{username}**: {content}");
+                    return;
+                }
+
+                var webhooks = await ((IIntegrationChannel)baseChannel).GetWebhooksAsync();
+                var webhook = webhooks.FirstOrDefault(w => w.Name == "AiLexandriaWebhook");
+
+                if (webhook == null)
+                {
+                    _logCallback($"[Master] Creating new webhook in channel {baseChannel.Name}...");
+                    webhook = await ((IIntegrationChannel)baseChannel).CreateWebhookAsync("AiLexandriaWebhook");
+                }
+
+                using var webhookClient = new DiscordWebhookClient(webhook);
+                
+                if (thread != null)
+                {
+                    await webhookClient.SendMessageAsync(
+                        text: content,
+                        username: username,
+                        avatarUrl: string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl,
+                        threadId: thread.Id
+                    );
+                }
+                else
+                {
+                    await webhookClient.SendMessageAsync(
+                        text: content,
+                        username: username,
+                        avatarUrl: string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logCallback($"[Master] Webhook error: {ex.Message}");
+            }
+        }
+
+        // Keep this for UI compatibility for now (the UI asks if a bot is running)
+        // With the new architecture, if Master is running, all loaded characters are "running".
         public bool IsBotRunning(int index)
         {
-            return _activeBots.TryGetValue(index, out var instance) && instance.IsConnected;
+            return IsMasterConnected && _characters.ContainsKey(index);
         }
     }
 }

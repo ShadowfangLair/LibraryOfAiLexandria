@@ -11,170 +11,88 @@ namespace LibraryOfAiLexandria
     public class BotConfig
     {
         public string Name { get; set; } = string.Empty;
-        public string DiscordToken { get; set; } = string.Empty;
+        public string ChannelId { get; set; } = string.Empty;
+        public string AvatarUrl { get; set; } = string.Empty;
         public string NovelAiKey { get; set; } = string.Empty;
         public bool Advanced { get; set; }
         public string NovelAiModel { get; set; } = "kayra-v1";
         public double NovelAiTemp { get; set; } = 1.0;
         public int MemoryLimit { get; set; } = 20;
         public string SystemPrompt { get; set; } = string.Empty;
-        public bool Connected { get; set; }
     }
 
-    public class DiscordBotInstance
+    public class CharacterInstance
     {
-        private readonly BotConfig _config;
-        private readonly DiscordSocketClient _client;
+        public BotConfig Config { get; }
         private readonly NovelAiClient _novelAi;
         private readonly MemoryStorage _memory;
         private readonly Action<string> _logCallback;
-        private bool _isShuttingDown;
 
-        public bool IsConnected => _client.ConnectionState == ConnectionState.Connected;
-
-        public DiscordBotInstance(BotConfig config, Action<string> logCallback)
+        public CharacterInstance(BotConfig config, Action<string> logCallback)
         {
-            _config = config;
+            Config = config;
             _logCallback = logCallback;
-            
             _novelAi = new NovelAiClient(config.NovelAiKey);
             _memory = new MemoryStorage(config.Name);
-
-            var discordConfig = new DiscordSocketConfig
-            {
-                GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent
-            };
-            
-            _client = new DiscordSocketClient(discordConfig);
-            _client.Log += LogAsync;
-            _client.MessageReceived += MessageReceivedAsync;
         }
 
-        public async Task StartAsync()
+        public async Task<string> GenerateResponseAsync(string username, string cleanMessage)
         {
-            if (string.IsNullOrWhiteSpace(_config.DiscordToken))
-            {
-                _logCallback($"[{_config.Name}] Cannot start: Discord Token is empty.");
-                return;
-            }
+            _logCallback($"[{Config.Name}] Received message from {username}: {cleanMessage}");
 
-            try
-            {
-                await _client.LoginAsync(TokenType.Bot, _config.DiscordToken);
-                await _client.StartAsync();
-                _logCallback($"[{_config.Name}] Connecting to Discord...");
-            }
-            catch (Exception ex)
-            {
-                _logCallback($"[{_config.Name}] Failed to start: {ex.Message}");
-            }
-        }
-
-        public async Task StopAsync()
-        {
-            _isShuttingDown = true;
-            try
-            {
-                await _client.StopAsync();
-                await _client.LogoutAsync();
-                _logCallback($"[{_config.Name}] Disconnected.");
-            }
-            catch (Exception ex)
-            {
-                _logCallback($"[{_config.Name}] Error during stop: {ex.Message}");
-            }
-        }
-
-        private Task LogAsync(LogMessage msg)
-        {
-            if (!_isShuttingDown)
-            {
-                _logCallback($"[{_config.Name}] {msg.Message ?? msg.Exception?.Message}");
-            }
-            return Task.CompletedTask;
-        }
-
-        private async Task MessageReceivedAsync(SocketMessage message)
-        {
-            // Ignore messages from bots (including ourselves)
-            if (message.Author.IsBot) return;
-
-            // Simple check: Only respond if mentioned or if it's a DM. You could configure this further.
-            bool isMentioned = message.MentionedUsers.Any(u => u.Id == _client.CurrentUser.Id);
-            bool isDm = message.Channel is IDMChannel;
-
-            if (!isMentioned && !isDm) return;
-
-            var cleanMessage = message.CleanContent.Replace($"@{_client.CurrentUser.Username}", "").Trim();
-            
-            _logCallback($"[{_config.Name}] Received message from {message.Author.Username}: {cleanMessage}");
-
-            // 1. Save user message to memory
             _memory.AppendMessage(new ChatMessage 
             { 
-                Author = message.Author.Username, 
+                Author = username, 
                 Content = cleanMessage, 
                 IsBot = false, 
                 Timestamp = DateTime.UtcNow 
             });
 
-            // 2. Build prompt for NovelAI
             var prompt = BuildPrompt();
             
-            // 3. Set typing indicator
-            using var typing = message.Channel.EnterTypingState();
+            var response = await _novelAi.GenerateResponseAsync(prompt, Config.NovelAiModel, Config.NovelAiTemp);
 
-            // 4. Generate response
-            var response = await _novelAi.GenerateResponseAsync(prompt, _config.NovelAiModel, _config.NovelAiTemp);
-
-            // NovelAI sometimes returns empty or weird stops, let's just make sure it's not totally empty
             if (string.IsNullOrWhiteSpace(response))
             {
                 response = "*[No response generated]*";
             }
 
-            // Clean up formatting that NovelAI might inject
             response = response.Trim();
 
-            // 5. Send response to Discord
-            await message.Channel.SendMessageAsync(response);
-
-            // 6. Save bot response to memory
             _memory.AppendMessage(new ChatMessage 
             { 
-                Author = _config.Name, 
+                Author = Config.Name, 
                 Content = response, 
                 IsBot = true, 
                 Timestamp = DateTime.UtcNow 
             });
             
-            _logCallback($"[{_config.Name}] Responded: {response}");
+            _logCallback($"[{Config.Name}] Generated Response: {response}");
+            return response;
         }
 
         private string BuildPrompt()
         {
             var sb = new StringBuilder();
             
-            // System prompt or character context
-            if (!string.IsNullOrWhiteSpace(_config.SystemPrompt))
+            if (!string.IsNullOrWhiteSpace(Config.SystemPrompt))
             {
-                sb.AppendLine(_config.SystemPrompt);
+                sb.AppendLine(Config.SystemPrompt);
             }
             else
             {
-                sb.AppendLine($"This is a chat transcript between users and a character named {_config.Name}. {_config.Name} is helpful and conversational.");
+                sb.AppendLine($"This is a chat transcript between users and a character named {Config.Name}. {Config.Name} is helpful and conversational.");
             }
             sb.AppendLine("***");
 
-            var history = _memory.GetRecentHistory(_config.MemoryLimit);
+            var history = _memory.GetRecentHistory(Config.MemoryLimit);
             
             foreach (var msg in history)
             {
                 sb.AppendLine($"{msg.Author}: {msg.Content}");
             }
 
-            // Prompt NovelAI to generate the bot's next reply
-            sb.Append($"{_config.Name}:");
+            sb.Append($"{Config.Name}:");
             
             return sb.ToString();
         }

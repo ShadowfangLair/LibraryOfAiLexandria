@@ -1,44 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Library of Ai‑Lexandria</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <title>Library of Ai-Lexandria</title>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
-    <div class="container">
+    <div class="layout">
         <header class="header">
-            <h1 class="title">Library of Ai‑Lexandria</h1>
-            <p class="subtitle">Your Discord bot’s brain – UI companion</p>
+            <h1>Library of Ai-Lexandria</h1>
+            <p style="color:var(--text-dim); margin-top:0.25rem;">The Sub-Basement Deep Cyber-Vault</p>
         </header>
-        <section class="card">
-            <h2>Configuration</h2>
-            <textarea id="configArea" class="config-textarea" spellcheck="false"></textarea>
-            <div class="buttons">
-                <button id="loadBtn" class="btn">Load Config</button>
-                <button id="saveBtn" class="btn primary">Save Config</button>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="characters">Characters / Plugins</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+            <button class="tab-btn" data-tab="logs">Logs</button>
+        </div>
+
+        <!-- Characters Tab -->
+        <section id="tab-characters" class="card tab-content active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <h2>Character Plugins</h2>
+                    <p style="color:var(--text-dim);">Confine characters to specific channels and PAIGE will auto-switch personas!</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" id="addBotBtn">+ Add Character</button>
+                    <button class="btn btn-primary" id="importCardBtn" style="margin-left: 10px;">+ Import SillyTavern Card</button>
+                </div>
             </div>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Name</th>
+                        <th>Channel ID</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="botsBody"></tbody>
+            </table>
         </section>
-<section class="card">
-    <h2>Bots Manager (max 10)</h2>
-    <button id="addBotBtn" class="btn primary" style="margin-bottom:0.5rem;">Add Bot</button>
-    <table id="botsTable" class="bots-table" style="width:100%; border-collapse:collapse;">
-        <thead>
-            <tr style="background:rgba(255,255,255,0.1);">
-                <th style="padding:0.5rem;">Name</th>
-                <th style="padding:0.5rem;">Discord Token</th>
-                <th style="padding:0.5rem;">NovelAI Key</th>
-                <th style="padding:0.5rem;">Connected</th>
-                <th style="padding:0.5rem;">Actions</th>
-            </tr>
-        </thead>
-        <tbody id="botsBody"></tbody>
-    </table>
-</section>
-        <section class="card">
-            <h2>Settings & Auto-Updater</h2>
+
+        <!-- Settings Tab -->
+        <section id="tab-settings" class="card tab-content" style="display: none;">
+            <h2>Master Brain Settings (P.A.I.G.E.)</h2>
+            <div class="form-group">
+                <label>Master Discord Token (Required):</label>
+                <input type="password" id="settingMasterToken" class="input" placeholder="Paste Discord Bot Token here" />
+                <small style="color:var(--text-dim);">This token powers all character Webhooks.</small>
+            </div>
+            <hr style="border:1px solid rgba(255,255,255,0.1); margin: 1.5rem 0;" />
+            <h2>Auto-Updater</h2>
             <div class="form-group">
                 <label>GitHub Repository (e.g., username/repo):</label>
                 <input type="text" id="settingGithubRepo" class="input" placeholder="ShadowfangLair/LibraryOfAiLexandria" />
@@ -50,110 +65,75 @@
                     <option value="silent">Download and install silently in background</option>
                 </select>
             </div>
-            <div class="buttons" style="margin-top:0.5rem;">
+            <div class="buttons" style="margin-top:1.5rem;">
                 <button id="checkUpdatesBtn" class="btn">Check for Updates Now</button>
                 <button id="saveSettingsBtn" class="btn primary">Save Settings</button>
             </div>
         </section>
         
-        <section class="card">
-            <h2>Log Viewer</h2>
-            <div style="margin-bottom:0.5rem;">
-                <button id="refreshLogBtn" class="btn">Refresh Log</button>
-            </div>
-            <pre id="logArea" class="log-area">Log output will appear here...</pre>
+        <!-- Logs Tab -->
+        <section id="tab-logs" class="card tab-content" style="display: none;">
+            <h2>Live Master Logs</h2>
+            <pre id="logOutput" class="log-viewer"></pre>
         </section>
     </div>
 
-    <!-- Bot Edit Modal -->
-    <dialog id="botModal" class="modal">
+    <!-- Character Edit Modal -->
+    <dialog class="modal" id="botModal">
         <div class="modal-content">
-            <h3 id="modalTitle">Edit Bot</h3>
+            <h2 id="modalTitle">Character Plugin</h2>
             <div class="form-group">
-                <label>Name:</label>
-                <input type="text" id="botName" class="input" />
+                <label>Character Name:</label>
+                <input type="text" id="botName" placeholder="e.g. Senako Steel" class="input" />
             </div>
             <div class="form-group">
-                <label>Discord Token:</label>
-                <input type="password" id="botDiscord" class="input" />
+                <label>Confined Channel ID (Optional):</label>
+                <input type="text" id="botChannel" placeholder="e.g. 123456789" class="input" />
             </div>
             <div class="form-group">
-            <label>NovelAI API Key:</label>
-            <input type="password" id="botNovelAi" placeholder="Paste NovelAI key here" class="input">
-        </div>
-        <div class="form-group">
-            <label>Bot Persona / System Prompt:</label>
-            <textarea id="botPersona" rows="4" placeholder="Describe who this bot is, how it should act, its backstory, etc." class="input"></textarea>
-            <small style="color: hsl(210, 15%, 70%);">Example: You are Senako Steel, a grumpy mechanic. You love robots and hate magic.</small>
-        </div>
-        
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 1rem;">
-                    <input type="checkbox" id="advancedToggle" />
-                    <strong>Show Advanced Settings</strong>
-                </label>
+                <label>Avatar Image URL (Optional):</label>
+                <input type="text" id="botAvatar" placeholder="https://.../image.png" class="input" />
+            </div>
+            <div class="form-group">
+                <label>NovelAI API Key:</label>
+                <input type="password" id="botNovelAi" placeholder="Paste NovelAI key here" class="input">
+            </div>
+            <div class="form-group">
+                <label>Character Persona / System Prompt:</label>
+                <textarea id="botPersona" rows="4" placeholder="Describe who this bot is, how it should act, its backstory, etc." class="input"></textarea>
+                <small style="color:var(--text-dim);">Example: You are Senako Steel, a grumpy mechanic.</small>
+            </div>
+            
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 1rem;">
+                <input type="checkbox" id="advancedToggle" />
+                <strong>Show Advanced NovelAI Settings</strong>
+            </label>
 
             <div id="advancedSettings" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 4px;">
                 <div class="form-group">
-                    <label>NovelAI Model:</label>
+                    <label>Model:</label>
                     <select id="botModel" class="input">
                         <option value="kayra-v1">Kayra</option>
                         <option value="clio-v1">Clio</option>
-                        <option value="euterpe-v2">Euterpe</option>
+                        <option value="krake-v2">Krake</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Temperature (<span id="tempVal">1.0</span>):</label>
-                    <input type="range" id="botTemp" min="0.1" max="2.5" step="0.1" value="1.0" class="input" />
+                    <label>Temperature (Creativity):</label>
+                    <input type="number" id="botTemp" step="0.1" value="1.0" class="input" />
                 </div>
                 <div class="form-group">
-                    <label>Memory Limit (past messages to remember: <span id="memVal">20</span>):</label>
-                    <input type="range" id="botMem" min="0" max="100" step="1" value="20" class="input" />
+                    <label>Memory Limit (Messages):</label>
+                    <input type="number" id="botMemory" value="20" class="input" />
                 </div>
             </div>
 
-            <div class="buttons" style="margin-top: 1.5rem; justify-content: flex-end;">
-                <button id="modalCancel" class="btn">Cancel</button>
-                <button id="modalSave" class="btn primary">Save Bot</button>
+            <div class="buttons" style="margin-top:1.5rem; justify-content: flex-end;">
+                <button id="cancelBotBtn" class="btn">Cancel</button>
+                <button id="saveBotBtn" class="btn primary">Save Character</button>
             </div>
         </div>
     </dialog>
-
-    <style>
-        .modal {
-            border: none;
-            border-radius: 8px;
-            background: #2a2a35;
-            color: #fff;
-            padding: 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            max-width: 500px;
-            width: 100%;
-        }
-        .modal::backdrop {
-            background: rgba(0, 0, 0, 0.6);
-        }
-        .modal-content {
-            padding: 1.5rem;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-            display: flex;
-            flex-direction: column;
-        }
-        .form-group label {
-            margin-bottom: 0.25rem;
-            font-size: 0.9rem;
-            color: #aaa;
-        }
-        .input {
-            background: #1e1e24;
-            border: 1px solid #444;
-            color: #fff;
-            padding: 0.5rem;
-            border-radius: 4px;
-            font-family: inherit;
-        }
-    </style>
 
     <script src="renderer.js"></script>
 </body>

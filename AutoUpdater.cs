@@ -11,6 +11,7 @@ namespace LibraryOfAiLexandria
     {
         public string GithubRepo { get; set; } = string.Empty;
         public string UpdateMode { get; set; } = "prompt";
+        public string MasterDiscordToken { get; set; } = string.Empty;
     }
 
     public class AutoUpdater

@@ -228,10 +228,10 @@ namespace LibraryOfAiLexandria
                         webView.CoreWebView2.PostWebMessageAsJson(logMsg);
                         break;
                     case "startBot":
-                        await StartBotFromUiAsync(json.GetProperty("botIndex").GetInt32());
+                        StartBotFromUi(json.GetProperty("botIndex").GetInt32());
                         break;
                     case "stopBot":
-                        await _botManager.StopBotAsync(json.GetProperty("botIndex").GetInt32());
+                        _botManager.StopBot(json.GetProperty("botIndex").GetInt32());
                         break;
                     case "requestStatuses":
                     {
@@ -261,7 +261,31 @@ namespace LibraryOfAiLexandria
                         var newSettings = json.GetProperty("settings").GetRawText();
                         File.WriteAllText(settingsPath2, newSettings);
                         webView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(new { action = "saveResult", success = true }));
-                        ShowToast("Settings Saved", "Auto-updater settings saved.");
+                        ShowToast("Settings Saved", "Auto-updater and Master Token saved.");
+                        var s = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(newSettings, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        if (s != null && !string.IsNullOrWhiteSpace(s.MasterDiscordToken))
+                        {
+                            await _botManager.StartMasterAsync(s.MasterDiscordToken);
+                        }
+                        break;
+                    case "importCard":
+                        using (var ofd = new OpenFileDialog())
+                        {
+                            ofd.Filter = "SillyTavern Cards|*.png;*.json|PNG Image|*.png|JSON File|*.json";
+                            ofd.Title = "Select a SillyTavern Character Card";
+                            if (ofd.ShowDialog() == DialogResult.OK)
+                            {
+                                var config = SillyTavernImporter.ImportFromCard(ofd.FileName);
+                                if (config != null)
+                                {
+                                    webView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(new { action = "cardImported", bot = config }));
+                                }
+                                else
+                                {
+                                    ShowToast("Import Failed", "Could not parse the character card.");
+                                }
+                            }
+                        }
                         break;
                     case "checkUpdates":
                         var settingsPath3 = Path.Combine(BrainPath, "settings.json");
@@ -279,7 +303,7 @@ namespace LibraryOfAiLexandria
             }
         }
 
-        private async Task StartBotFromUiAsync(int index)
+        private void StartBotFromUi(int index)
         {
             var botsPath = Path.Combine(BrainPath, "bots.json");
             if (!File.Exists(botsPath)) return;
@@ -288,29 +312,22 @@ namespace LibraryOfAiLexandria
             if (botsArray != null && index >= 0 && index < botsArray.Count)
             {
                 var botConfig = botsArray[index];
-                await _botManager.StartBotAsync(index, botConfig);
-                botsArray[index].Connected = true;
-                File.WriteAllText(botsPath, System.Text.Json.JsonSerializer.Serialize(botsArray));
-                var botsReply = System.Text.Json.JsonSerializer.Serialize(new { action = "botsData", bots = System.Text.Json.JsonSerializer.Deserialize<object>(File.ReadAllText(botsPath)) });
-                webView.CoreWebView2.PostWebMessageAsJson(botsReply);
+                _botManager.StartBot(index, botConfig);
+                
+                // Let's also make sure master is started if we know the token!
+                var settingsPath = Path.Combine(BrainPath, "settings.json");
+                if (File.Exists(settingsPath))
+                {
+                    var s = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(settingsPath), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (s != null && !string.IsNullOrWhiteSpace(s.MasterDiscordToken))
+                    {
+                        _ = _botManager.StartMasterAsync(s.MasterDiscordToken);
+                    }
+                }
             }
         }
 
-        private async Task StopBotFromUiAsync(int index)
-        {
-            var botsPath = Path.Combine(BrainPath, "bots.json");
-            if (!File.Exists(botsPath)) return;
-            var botsContent = File.ReadAllText(botsPath);
-            var botsArray = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<BotConfig>>(botsContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (botsArray != null && index >= 0 && index < botsArray.Count)
-            {
-                await _botManager.StopBotAsync(index);
-                botsArray[index].Connected = false;
-                File.WriteAllText(botsPath, System.Text.Json.JsonSerializer.Serialize(botsArray));
-                var botsReply = System.Text.Json.JsonSerializer.Serialize(new { action = "botsData", bots = System.Text.Json.JsonSerializer.Deserialize<object>(File.ReadAllText(botsPath)) });
-                webView.CoreWebView2.PostWebMessageAsJson(botsReply);
-            }
-        }
+
 
         private void ShowAbout()
         {
