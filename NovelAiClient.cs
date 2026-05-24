@@ -18,7 +18,7 @@ namespace LibraryOfAiLexandria
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
         }
 
-        public async Task<string> GenerateResponseAsync(string prompt, string model, double temperature)
+        public async Task<string> GenerateResponseAsync(string prompt, string model, double temperature, string[] stopSequences = null)
         {
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
@@ -42,7 +42,8 @@ namespace LibraryOfAiLexandria
                     top_a = 1,
                     top_p = 1,
                     top_k = 0,
-                    typical_p = 1
+                    typical_p = 1,
+                    stop_sequences = stopSequences
                 }
             };
 

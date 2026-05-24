@@ -48,9 +48,10 @@ namespace LibraryOfAiLexandria
                 Timestamp = DateTime.UtcNow 
             });
 
-            var prompt = BuildPrompt();
+            var prompt = BuildPrompt(username);
             
-            var response = await _novelAi.GenerateResponseAsync(prompt, Config.NovelAiModel, Config.NovelAiTemp);
+            string[] stops = new[] { $"\n{username}:", "\n***\n", "\n<|" };
+            var response = await _novelAi.GenerateResponseAsync(prompt, Config.NovelAiModel, Config.NovelAiTemp, stops);
 
             if (string.IsNullOrWhiteSpace(response))
             {
@@ -71,17 +72,18 @@ namespace LibraryOfAiLexandria
             return response;
         }
 
-        private string BuildPrompt()
+        private string BuildPrompt(string currentUsername)
         {
             var sb = new StringBuilder();
             
             if (!string.IsNullOrWhiteSpace(Config.SystemPrompt))
             {
+                sb.AppendLine($"This is a chat transcript between a user named {currentUsername} and a character named {Config.Name}.");
                 sb.AppendLine(Config.SystemPrompt);
             }
             else
             {
-                sb.AppendLine($"This is a chat transcript between users and a character named {Config.Name}. {Config.Name} is helpful and conversational.");
+                sb.AppendLine($"This is a chat transcript between {currentUsername} and a character named {Config.Name}. {Config.Name} is helpful and conversational.");
             }
             sb.AppendLine("***");
 
