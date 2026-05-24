@@ -59,6 +59,8 @@ namespace LibraryOfAiLexandria
             _client = new DiscordSocketClient(discordConfig);
             _client.Log += LogAsync;
             _client.MessageReceived += MessageReceivedAsync;
+            _client.Ready += Client_ReadyAsync;
+            _client.SlashCommandExecuted += SlashCommandExecutedAsync;
 
             try
             {
@@ -80,6 +82,8 @@ namespace LibraryOfAiLexandria
                 {
                     _client.Log -= LogAsync;
                     _client.MessageReceived -= MessageReceivedAsync;
+                    _client.Ready -= Client_ReadyAsync;
+                    _client.SlashCommandExecuted -= SlashCommandExecutedAsync;
                     await _client.StopAsync();
                     await _client.LogoutAsync();
                     _logCallback("[Master] Disconnected.");
@@ -132,11 +136,12 @@ namespace LibraryOfAiLexandria
                 return;
             }
 
-            // Check if this is a PAIGE start/stop/restart command
+            // Note: PAIGE commands (/paige-start, etc.) are now handled by SlashCommandExecutedAsync!
+            // But we keep this for backwards compatibility just in case they manage to send it as text.
             var contentLower = message.Content.ToLower().Trim();
             if (contentLower.StartsWith("/paige-start-") || contentLower.StartsWith("/paige-stop-") || contentLower.StartsWith("/paige-restart-bots") || contentLower.StartsWith("/paige-mention-"))
             {
-                await HandlePaigeCommandAsync(message);
+                await HandlePaigeCommandTextAsync(message);
                 return;
             }
 
@@ -253,7 +258,7 @@ namespace LibraryOfAiLexandria
             }
         }
 
-        private async Task HandlePaigeCommandAsync(SocketMessage message)
+        private async Task HandlePaigeCommandTextAsync(SocketMessage message)
         {
             var text = message.Content.Trim();
             if (text.StartsWith("/paige-restart-bots", StringComparison.OrdinalIgnoreCase))
@@ -290,6 +295,93 @@ namespace LibraryOfAiLexandria
                 ToggleMentionModeRequested?.Invoke(name);
                 await message.Channel.SendMessageAsync($"*[P.A.I.G.E.] Toggling mention mode for '{name}'...*");
                 return;
+            }
+        }
+
+        private async Task Client_ReadyAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var startCmd = new SlashCommandBuilder()
+                    .WithName("paige-start")
+                    .WithDescription("Boot up a specific character plugin")
+                    .AddOption("character", ApplicationCommandOptionType.String, "Name of the character", isRequired: true);
+                
+                var stopCmd = new SlashCommandBuilder()
+                    .WithName("paige-stop")
+                    .WithDescription("Shut down a specific character plugin")
+                    .AddOption("character", ApplicationCommandOptionType.String, "Name of the character", isRequired: true);
+                
+                var restartCmd = new SlashCommandBuilder()
+                    .WithName("paige-restart-bots")
+                    .WithDescription("Shut down all active characters");
+                
+                var mentionCmd = new SlashCommandBuilder()
+                    .WithName("paige-mention")
+                    .WithDescription("Toggle mention mode for a character")
+                    .AddOption("character", ApplicationCommandOptionType.String, "Name of the character", isRequired: true);
+
+                await _client.Rest.CreateGlobalCommand(startCmd.Build());
+                await _client.Rest.CreateGlobalCommand(stopCmd.Build());
+                await _client.Rest.CreateGlobalCommand(restartCmd.Build());
+                await _client.Rest.CreateGlobalCommand(mentionCmd.Build());
+                
+                _logCallback("[Master] Registered global slash commands.");
+            }
+            catch (Exception ex)
+            {
+                _logCallback($"[Master] Failed to register slash commands: {ex.Message}");
+            }
+        }
+
+        private async Task SlashCommandExecutedAsync(SocketSlashCommand command)
+        {
+            try
+            {
+                if (command.CommandName == "paige-restart-bots")
+                {
+                    _logCallback("[Master] Received remote restart command via slash command.");
+                    var keys = _characters.Keys.ToList();
+                    foreach (var k in keys) StopBot(k);
+                    await command.RespondAsync("*[P.A.I.G.E.] Shutting down all active characters. Please start them again manually or via auto-start.*");
+                    return;
+                }
+
+                if (command.CommandName == "paige-start")
+                {
+                    var name = command.Data.Options.First().Value.ToString() ?? "";
+                    _logCallback($"[Master] Remote start requested for '{name}' via slash command.");
+                    StartBotRequested?.Invoke(name);
+                    await command.RespondAsync($"*[P.A.I.G.E.] Attempting to boot up '{name}'...*");
+                    return;
+                }
+
+                if (command.CommandName == "paige-stop")
+                {
+                    var name = command.Data.Options.First().Value.ToString() ?? "";
+                    _logCallback($"[Master] Remote stop requested for '{name}' via slash command.");
+                    StopBotRequested?.Invoke(name);
+                    await command.RespondAsync($"*[P.A.I.G.E.] Shutting down '{name}'...*");
+                    return;
+                }
+
+                if (command.CommandName == "paige-mention")
+                {
+                    var name = command.Data.Options.First().Value.ToString() ?? "";
+                    _logCallback($"[Master] Remote mention mode toggle requested for '{name}' via slash command.");
+                    ToggleMentionModeRequested?.Invoke(name);
+                    await command.RespondAsync($"*[P.A.I.G.E.] Toggling mention mode for '{name}'...*");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logCallback($"[Master] Error handling slash command: {ex.Message}");
+                if (!command.HasResponded)
+                {
+                    await command.RespondAsync($"*[P.A.I.G.E.] Error executing command: {ex.Message}*", ephemeral: true);
+                }
             }
         }
 

@@ -25,10 +25,15 @@ namespace LibraryOfAiLexandria
                 return "*[NovelAI API key not configured]*";
             }
 
+            // Map UI shorthand model names to actual NovelAI API enum identifiers
+            var apiModel = model?.Trim().ToLower() ?? "kayra-v1";
+            if (apiModel == "xialong") apiModel = "xialong-v1";
+            else if (apiModel == "erato" || apiModel == "llama-3-erato-v1") apiModel = "llama-3-erato";
+
             var requestBody = new
             {
                 input = prompt,
-                model = model?.Trim() ?? "kayra-v1",
+                model = apiModel,
                 parameters = new
                 {
                     use_string = true,
