@@ -30,6 +30,10 @@ namespace LibraryOfAiLexandria
         public void SetGlobalNovelAiKey(string key)
         {
             _globalNovelAiKey = key?.Trim() ?? string.Empty;
+            foreach (var charInstance in _characters.Values)
+            {
+                charInstance.UpdateNovelAiKey(_globalNovelAiKey);
+            }
             _logCallback("[Master] Global NovelAI key updated.");
         }
 

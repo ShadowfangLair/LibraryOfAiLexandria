@@ -37,6 +37,11 @@ namespace LibraryOfAiLexandria
             _memory = new MemoryStorage(config.Name);
         }
 
+        public void UpdateNovelAiKey(string novelAiKey)
+        {
+            _novelAi.UpdateApiKey(novelAiKey);
+        }
+
         public async Task<string> GenerateResponseAsync(string username, string cleanMessage)
         {
             _logCallback($"[{Config.Name}] Received message from {username}: {cleanMessage}");

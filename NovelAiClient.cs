@@ -9,13 +9,26 @@ namespace LibraryOfAiLexandria
     public class NovelAiClient
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey;
+        private string _apiKey;
 
         public NovelAiClient(string apiKey)
         {
             _apiKey = apiKey;
             _httpClient = new HttpClient();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+            if (!string.IsNullOrWhiteSpace(_apiKey))
+            {
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+            }
+        }
+
+        public void UpdateApiKey(string newKey)
+        {
+            _apiKey = newKey;
+            _httpClient.DefaultRequestHeaders.Remove("Authorization");
+            if (!string.IsNullOrWhiteSpace(_apiKey))
+            {
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+            }
         }
 
         public async Task<string> GenerateResponseAsync(string prompt, string model, double temperature)
