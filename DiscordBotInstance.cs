@@ -78,7 +78,7 @@ namespace LibraryOfAiLexandria
             response = response.Trim();
 
             // Do not permanently poison the character's memory with API error strings
-            if (!response.StartsWith("*[NovelAI Error"))
+            if (!response.StartsWith("*[NovelAI"))
             {
                 _memory.AppendMessage(new ChatMessage 
                 { 
