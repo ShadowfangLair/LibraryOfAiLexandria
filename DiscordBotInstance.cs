@@ -56,7 +56,8 @@ namespace LibraryOfAiLexandria
 
             var prompt = BuildPrompt(username);
             
-            var response = await _novelAi.GenerateResponseAsync(prompt, Config.NovelAiModel, Config.NovelAiTemp);
+            var stopSequences = new[] { $"\n{username}:", $"\n{Config.Name}:", "\n***\n", "\n<|", "<|eot_id|>", "<|eom_id|>" };
+            var response = await _novelAi.GenerateResponseAsync(prompt, Config.NovelAiModel, Config.NovelAiTemp, stopSequences);
 
             if (!string.IsNullOrWhiteSpace(response))
             {

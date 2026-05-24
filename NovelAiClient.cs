@@ -31,7 +31,7 @@ namespace LibraryOfAiLexandria
             }
         }
 
-        public async Task<string> GenerateResponseAsync(string prompt, string model, double temperature)
+        public async Task<string> GenerateResponseAsync(string prompt, string model, double temperature, string[] stopSequences = null)
         {
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
@@ -58,7 +58,8 @@ namespace LibraryOfAiLexandria
                     model = apiModel,
                     messages = new[] { new { role = "user", content = prompt } },
                     temperature = temperature,
-                    max_tokens = 200
+                    max_tokens = 200,
+                    stop = stopSequences
                 };
                 jsonPayload = JsonSerializer.Serialize(oaBody);
             }
@@ -82,7 +83,8 @@ namespace LibraryOfAiLexandria
                         top_a = 1,
                         top_p = 1,
                         top_k = 0,
-                        typical_p = 1
+                        typical_p = 1,
+                        stop_sequences = stopSequences
                     }
                 };
                 jsonPayload = JsonSerializer.Serialize(naiBody);
