@@ -50,8 +50,19 @@ namespace LibraryOfAiLexandria
 
             var prompt = BuildPrompt(username);
             
-            string[] stops = new[] { $"\n{username}:", "\n***\n", "\n<|" };
-            var response = await _novelAi.GenerateResponseAsync(prompt, Config.NovelAiModel, Config.NovelAiTemp, stops);
+            var response = await _novelAi.GenerateResponseAsync(prompt, Config.NovelAiModel, Config.NovelAiTemp);
+
+            if (!string.IsNullOrWhiteSpace(response))
+            {
+                var stopIdx = response.IndexOf($"\n{username}:");
+                if (stopIdx != -1) response = response.Substring(0, stopIdx);
+                
+                var stopIdx2 = response.IndexOf("\n***\n");
+                if (stopIdx2 != -1) response = response.Substring(0, stopIdx2);
+                
+                var stopIdx3 = response.IndexOf("\n<|");
+                if (stopIdx3 != -1) response = response.Substring(0, stopIdx3);
+            }
 
             if (string.IsNullOrWhiteSpace(response))
             {

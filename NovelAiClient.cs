@@ -18,7 +18,7 @@ namespace LibraryOfAiLexandria
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
         }
 
-        public async Task<string> GenerateResponseAsync(string prompt, string model, double temperature, string[] stopSequences = null)
+        public async Task<string> GenerateResponseAsync(string prompt, string model, double temperature)
         {
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
@@ -42,8 +42,7 @@ namespace LibraryOfAiLexandria
                     top_a = 1,
                     top_p = 1,
                     top_k = 0,
-                    typical_p = 1,
-                    stop_sequences = stopSequences
+                    typical_p = 1
                 }
             };
 
@@ -60,8 +59,12 @@ namespace LibraryOfAiLexandria
                 }
 
                 using var doc = JsonDocument.Parse(responseString);
-                var output = doc.RootElement.GetProperty("output").GetString();
-                return output?.Trim() ?? string.Empty;
+                if (doc.RootElement.TryGetProperty("output", out var outputProp))
+                {
+                    return outputProp.GetString()?.Trim() ?? string.Empty;
+                }
+                
+                return $"*[NovelAI Unexpected Response Format: {responseString}]*";
             }
             catch (Exception ex)
             {
