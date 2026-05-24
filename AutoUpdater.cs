@@ -16,7 +16,7 @@ namespace LibraryOfAiLexandria
 
     public class AutoUpdater
     {
-        public const string CurrentVersion = "1.0.8";
+        public const string CurrentVersion = "1.0.9";
         private readonly Action<string, string> _uiToastCallback;
         private readonly Action<string> _logCallback;
 

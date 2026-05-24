@@ -142,11 +142,18 @@ namespace LibraryOfAiLexandria
             // Set typing indicator
             using var typing = message.Channel.EnterTypingState();
 
-            // Generate Response from Character
-            var response = await character.GenerateResponseAsync(message.Author.Username, cleanMessage);
+            try
+            {
+                // Generate Response from Character
+                var response = await character.GenerateResponseAsync(message.Author.Username, cleanMessage);
 
-            // Send via Webhook!
-            await SendViaWebhookAsync(message.Channel, character.Config.Name, character.Config.AvatarUrl, response);
+                // Send via Webhook!
+                await SendViaWebhookAsync(message.Channel, character.Config.Name, character.Config.AvatarUrl, response);
+            }
+            catch (Exception ex)
+            {
+                _logCallback($"[Master] Message handling error: {ex.Message}");
+            }
         }
 
         private async Task HandleCreateRoomCommandAsync(SocketMessage message)
@@ -250,22 +257,15 @@ namespace LibraryOfAiLexandria
 
                 using var webhookClient = new DiscordWebhookClient(webhook);
                 
+                string? validAvatar = string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl;
+
                 if (thread != null)
                 {
-                    await webhookClient.SendMessageAsync(
-                        text: content,
-                        username: username,
-                        avatarUrl: string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl,
-                        threadId: thread.Id
-                    );
+                    await webhookClient.SendMessageAsync(content, username: username, avatarUrl: validAvatar, threadId: thread.Id);
                 }
                 else
                 {
-                    await webhookClient.SendMessageAsync(
-                        text: content,
-                        username: username,
-                        avatarUrl: string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl
-                    );
+                    await webhookClient.SendMessageAsync(content, username: username, avatarUrl: validAvatar);
                 }
             }
             catch (Exception ex)
