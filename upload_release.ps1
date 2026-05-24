@@ -3,6 +3,8 @@ param (
     [string]$Token = ""
 )
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 $repo = "ShadowfangLair/LibraryOfAiLexandria"
 
 $headers = @{

@@ -72,13 +72,17 @@ namespace LibraryOfAiLexandria
 
             response = response.Trim();
 
-            _memory.AppendMessage(new ChatMessage 
-            { 
-                Author = Config.Name, 
-                Content = response, 
-                IsBot = true, 
-                Timestamp = DateTime.UtcNow 
-            });
+            // Do not permanently poison the character's memory with API error strings
+            if (!response.StartsWith("*[NovelAI Error"))
+            {
+                _memory.AppendMessage(new ChatMessage 
+                { 
+                    Author = Config.Name, 
+                    Content = response, 
+                    IsBot = true, 
+                    Timestamp = DateTime.UtcNow 
+                });
+            }
             
             _logCallback($"[{Config.Name}] Generated Response: {response}");
             return response;
