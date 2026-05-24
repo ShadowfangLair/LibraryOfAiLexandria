@@ -231,8 +231,24 @@ namespace LibraryOfAiLexandria
                         await StartBotFromUiAsync(json.GetProperty("botIndex").GetInt32());
                         break;
                     case "stopBot":
-                        await StopBotFromUiAsync(json.GetProperty("botIndex").GetInt32());
+                        await _botManager.StopBotAsync(json.GetProperty("botIndex").GetInt32());
                         break;
+                    case "requestStatuses":
+                    {
+                        var statusesPath = Path.Combine(BrainPath, "bots.json");
+                        if (File.Exists(statusesPath))
+                        {
+                            var list = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<BotConfig>>(File.ReadAllText(statusesPath));
+                            var statusArray = new bool[list.Count];
+                            for (int i = 0; i < list.Count; i++)
+                            {
+                                statusArray[i] = _botManager.IsBotRunning(i);
+                            }
+                            var payload = new { action = "statusUpdate", statuses = statusArray };
+                            webView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(payload));
+                        }
+                        break;
+                    }
                     case "readAppSettings":
                         var settingsPath = Path.Combine(BrainPath, "settings.json");
                         if (!File.Exists(settingsPath)) File.WriteAllText(settingsPath, System.Text.Json.JsonSerializer.Serialize(new AppSettings()));

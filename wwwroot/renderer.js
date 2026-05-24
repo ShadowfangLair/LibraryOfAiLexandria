@@ -201,6 +201,14 @@ window.chrome.webview.addEventListener('message', ev => {
             botsBody.dataset.bots = JSON.stringify(data.bots);
             renderBots(data.bots);
             break;
+        case 'statusUpdate':
+            const current = JSON.parse(botsBody.dataset.bots || '[]');
+            data.statuses.forEach((status, idx) => {
+                if (current[idx]) current[idx].connected = status;
+            });
+            botsBody.dataset.bots = JSON.stringify(current);
+            renderBots(current);
+            break;
         case 'logUpdate':
             logArea.textContent += data.line + '\n';
             logArea.scrollTop = logArea.scrollHeight;
@@ -220,3 +228,8 @@ post('readConfig');
 post('readBots');
 post('readAppSettings');
 post('requestLogTail');
+
+// Periodic status update
+setInterval(() => {
+    post('requestStatuses');
+}, 1000);
