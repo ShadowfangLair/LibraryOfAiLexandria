@@ -278,7 +278,8 @@ namespace LibraryOfAiLexandria
                                 var config = SillyTavernImporter.ImportFromCard(ofd.FileName);
                                 if (config != null)
                                 {
-                                    webView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(new { action = "cardImported", bot = config }));
+                                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+                                    webView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(new { action = "cardImported", bot = config }, options));
                                 }
                                 else
                                 {
