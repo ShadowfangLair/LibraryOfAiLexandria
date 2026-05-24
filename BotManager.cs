@@ -12,8 +12,11 @@ namespace LibraryOfAiLexandria
     {
         private DiscordSocketClient? _client;
         private readonly Dictionary<int, CharacterInstance> _characters = new();
-        private readonly Action<string> _logCallback;
-        private string _currentToken = string.Empty;
+        private string _globalNovelAiKey = string.Empty;
+        public void SetGlobalNovelAiKey(string key)
+        {
+            _globalNovelAiKey = key;
+        }
 
         public event Action<string>? StartBotRequested;
         public event Action<string>? StopBotRequested;
@@ -91,7 +94,8 @@ namespace LibraryOfAiLexandria
 
         public void StartBot(int index, BotConfig config)
         {
-            _characters[index] = new CharacterInstance(config, _logCallback);
+            // Pass the global NovelAI key (or empty) to each character instance
+            _characters[index] = new CharacterInstance(config, _globalNovelAiKey, _logCallback);
             _logCallback($"[Master] Loaded character plugin: {config.Name} (Channel: {config.ChannelId})");
         }
 
@@ -230,7 +234,7 @@ namespace LibraryOfAiLexandria
                     }
 
                     int newId = _characters.Count > 0 ? _characters.Keys.Max() + 1 : 0;
-                    _characters[newId] = new CharacterInstance(newConfig, _logCallback);
+                    _characters[newId] = new CharacterInstance(newConfig, _globalNovelAiKey, _logCallback);
                     
                     await message.Channel.SendMessageAsync($"*[P.A.I.G.E.] Automatically detected and imported character plugin: **{newConfig.Name}**! They are now confined to this channel.*");
                     

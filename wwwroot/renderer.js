@@ -28,6 +28,7 @@ const botsBody = document.getElementById('botsBody');
 // Settings UI elements
 const settingMasterToken = document.getElementById('settingMasterToken');
 const settingStatusChannel = document.getElementById('settingStatusChannel');
+const settingNovelAiKey = document.getElementById('settingNovelAiKey');
 const settingGithubRepo = document.getElementById('settingGithubRepo');
 const settingUpdateMode = document.getElementById('settingUpdateMode');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
@@ -67,6 +68,7 @@ saveSettingsBtn.addEventListener('click', () => {
     appSettings.statusChannelId = settingStatusChannel.value.trim();
     appSettings.githubRepo = settingGithubRepo.value.trim();
     appSettings.updateMode = settingUpdateMode.value;
+    appSettings.novelAiKey = settingNovelAiKey.value.trim();
     post('saveAppSettings', { settings: appSettings });
 });
 
@@ -207,6 +209,7 @@ window.chrome.webview.addEventListener('message', ev => {
             appSettings = data.settings || {};
             settingMasterToken.value = appSettings.masterDiscordToken || '';
             settingStatusChannel.value = appSettings.statusChannelId || '';
+            settingNovelAiKey.value = appSettings.novelAiKey || '';
             settingGithubRepo.value = appSettings.githubRepo || '';
             settingUpdateMode.value = appSettings.updateMode || 'prompt';
             break;

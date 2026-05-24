@@ -307,6 +307,11 @@ namespace LibraryOfAiLexandria
                         {
                             await _botManager.StartMasterAsync(s.MasterDiscordToken);
                         }
+                        // Set the global NovelAI key for all bots
+                        if (s != null)
+                        {
+                            _botManager.SetGlobalNovelAiKey(s.NovelAiKey ?? "");
+                        }
                         break;
                     case "importCard":
                         using (var ofd = new OpenFileDialog())

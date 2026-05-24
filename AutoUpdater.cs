@@ -13,6 +13,7 @@ namespace LibraryOfAiLexandria
         public string UpdateMode { get; set; } = "prompt";
         public string MasterDiscordToken { get; set; } = string.Empty;
         public string StatusChannelId { get; set; } = "1507775019764158675";
+        public string NovelAiKey { get; set; } = string.Empty;
         public string LastRunVersion { get; set; } = string.Empty;
     }
 
