@@ -112,13 +112,14 @@
             <div id="advancedSettings" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 4px;">
                 <div class="form-group">
                     <label>Model:</label>
-                    <select id="botModel" class="input">
-                        <option value="xialong-v1">Xialong</option>
-                        <option value="llama-3-erato-v1">Llama 3 Erato</option>
+                    <input type="text" id="botModel" list="botModelList" class="input" placeholder="e.g. xialong or erato" />
+                    <datalist id="botModelList">
+                        <option value="xialong">Xialong</option>
+                        <option value="erato">Llama 3 Erato</option>
                         <option value="kayra-v1">Kayra</option>
                         <option value="clio-v1">Clio</option>
                         <option value="krake-v2">Krake</option>
-                    </select>
+                    </datalist>
                 </div>
                 <div class="form-group">
                     <label>Temperature (Creativity):</label>
