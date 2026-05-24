@@ -22,6 +22,7 @@ const modalTitle = document.getElementById('modalTitle');
 const botName = document.getElementById('botName');
 const botDiscord = document.getElementById('botDiscord');
 const botNovelAi = document.getElementById('botNovelAi');
+const botPersona = document.getElementById('botPersona');
 const advancedToggle = document.getElementById('advancedToggle');
 const advancedSettings = document.getElementById('advancedSettings');
 const botModel = document.getElementById('botModel');
@@ -98,6 +99,7 @@ function showModal(bot = null, idx = -1) {
     botName.value = bot?.name || '';
     botDiscord.value = bot?.discordToken || '';
     botNovelAi.value = bot?.novelAiKey || '';
+    botPersona.value = bot?.systemPrompt || '';
     
     // advanced settings
     botModel.value = bot?.novelAiModel || 'kayra-v1';
@@ -133,6 +135,7 @@ modalSave.addEventListener('click', () => {
         name,
         discordToken: botDiscord.value.trim(),
         novelAiKey: botNovelAi.value.trim(),
+        systemPrompt: botPersona.value.trim(),
         advanced: advancedToggle.checked,
         novelAiModel: botModel.value,
         novelAiTemp: parseFloat(botTemp.value),

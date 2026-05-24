@@ -78,16 +78,19 @@
                 <input type="password" id="botDiscord" class="input" />
             </div>
             <div class="form-group">
-                <label>NovelAI API Key:</label>
-                <input type="password" id="botNovelAi" class="input" />
-            </div>
-            
-            <div style="margin-top: 1rem;">
-                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <label>NovelAI API Key:</label>
+            <input type="password" id="botNovelAi" placeholder="Paste NovelAI key here" class="input">
+        </div>
+        <div class="form-group">
+            <label>Bot Persona / System Prompt:</label>
+            <textarea id="botPersona" rows="4" placeholder="Describe who this bot is, how it should act, its backstory, etc." class="input"></textarea>
+            <small style="color: hsl(210, 15%, 70%);">Example: You are Senako Steel, a grumpy mechanic. You love robots and hate magic.</small>
+        </div>
+        
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 1rem;">
                     <input type="checkbox" id="advancedToggle" />
                     <strong>Show Advanced Settings</strong>
                 </label>
-            </div>
 
             <div id="advancedSettings" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 4px;">
                 <div class="form-group">

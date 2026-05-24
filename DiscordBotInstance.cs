@@ -17,6 +17,7 @@ namespace LibraryOfAiLexandria
         public string NovelAiModel { get; set; } = "kayra-v1";
         public double NovelAiTemp { get; set; } = 1.0;
         public int MemoryLimit { get; set; } = 20;
+        public string SystemPrompt { get; set; } = string.Empty;
         public bool Connected { get; set; }
     }
 
@@ -154,8 +155,15 @@ namespace LibraryOfAiLexandria
         {
             var sb = new StringBuilder();
             
-            // System prompt or character context could go here.
-            sb.AppendLine($"This is a chat transcript between users and a character named {_config.Name}. {_config.Name} is helpful and conversational.");
+            // System prompt or character context
+            if (!string.IsNullOrWhiteSpace(_config.SystemPrompt))
+            {
+                sb.AppendLine(_config.SystemPrompt);
+            }
+            else
+            {
+                sb.AppendLine($"This is a chat transcript between users and a character named {_config.Name}. {_config.Name} is helpful and conversational.");
+            }
             sb.AppendLine("***");
 
             var history = _memory.GetRecentHistory(_config.MemoryLimit);
