@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -31,7 +32,7 @@ namespace LibraryOfAiLexandria
             }
         }
 
-        public async Task<string> GenerateResponseAsync(string prompt, string model, double temperature, string[] stopSequences = null)
+        public async Task<string> GenerateResponseAsync(string systemPrompt, List<ChatMessage> history, string botName, string currentUsername, string model, double temperature, string[] stopSequences = null)
         {
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
@@ -45,7 +46,7 @@ namespace LibraryOfAiLexandria
             else if (apiModel == "kayra") apiModel = "kayra-v1";
             else if (apiModel == "clio") apiModel = "clio-v1";
 
-            bool isOpenAiModel = apiModel.Contains("xialong") || apiModel.Contains("glm");
+            bool isOpenAiModel = apiModel.Contains("xialong") || apiModel.Contains("glm") || apiModel.Contains("erato");
 
             string requestUrl;
             string jsonPayload;
@@ -53,10 +54,19 @@ namespace LibraryOfAiLexandria
             if (isOpenAiModel)
             {
                 requestUrl = "https://text.novelai.net/oa/v1/chat/completions";
+                
+                var messages = new List<object>();
+                messages.Add(new { role = "system", content = systemPrompt });
+                
+                foreach (var msg in history)
+                {
+                    messages.Add(new { role = msg.IsBot ? "assistant" : "user", content = msg.Content });
+                }
+
                 var oaBody = new
                 {
                     model = apiModel,
-                    messages = new[] { new { role = "user", content = prompt } },
+                    messages = messages.ToArray(),
                     temperature = temperature,
                     max_tokens = 200,
                     stop = stopSequences
@@ -66,6 +76,17 @@ namespace LibraryOfAiLexandria
             else
             {
                 requestUrl = "https://text.novelai.net/ai/generate";
+                
+                var sb = new StringBuilder();
+                sb.AppendLine(systemPrompt);
+                sb.AppendLine("***");
+                foreach (var msg in history)
+                {
+                    sb.AppendLine($"{msg.Author}: {msg.Content}");
+                }
+                sb.Append($"{botName}:");
+                var prompt = sb.ToString();
+
                 var naiBody = new
                 {
                     input = prompt,

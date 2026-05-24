@@ -54,10 +54,11 @@ namespace LibraryOfAiLexandria
                 Timestamp = DateTime.UtcNow 
             });
 
-            var prompt = BuildPrompt(username);
+            var systemPrompt = BuildSystemPrompt(username);
+            var history = _memory.GetRecentHistory(Config.MemoryLimit);
             
             var stopSequences = new[] { $"\n{username}:", $"\n{Config.Name}:", "\n***\n", "\n<|", "<|eot_id|>", "<|eom_id|>" };
-            var response = await _novelAi.GenerateResponseAsync(prompt, Config.NovelAiModel, Config.NovelAiTemp, stopSequences);
+            var response = await _novelAi.GenerateResponseAsync(systemPrompt, history, Config.Name, username, Config.NovelAiModel, Config.NovelAiTemp, stopSequences);
 
             if (!string.IsNullOrWhiteSpace(response))
             {
@@ -94,31 +95,16 @@ namespace LibraryOfAiLexandria
             return response;
         }
 
-        private string BuildPrompt(string currentUsername)
+        private string BuildSystemPrompt(string currentUsername)
         {
-            var sb = new StringBuilder();
-            
             if (!string.IsNullOrWhiteSpace(Config.SystemPrompt))
             {
-                sb.AppendLine($"This is a chat transcript between a user named {currentUsername} and a character named {Config.Name}.");
-                sb.AppendLine(Config.SystemPrompt);
+                return $"This is a chat transcript between a user named {currentUsername} and a character named {Config.Name}.\n{Config.SystemPrompt}";
             }
             else
             {
-                sb.AppendLine($"This is a chat transcript between {currentUsername} and a character named {Config.Name}. {Config.Name} is helpful and conversational.");
+                return $"This is a chat transcript between {currentUsername} and a character named {Config.Name}. {Config.Name} is helpful and conversational.";
             }
-            sb.AppendLine("***");
-
-            var history = _memory.GetRecentHistory(Config.MemoryLimit);
-            
-            foreach (var msg in history)
-            {
-                sb.AppendLine($"{msg.Author}: {msg.Content}");
-            }
-
-            sb.Append($"{Config.Name}:");
-            
-            return sb.ToString();
         }
     }
 }
