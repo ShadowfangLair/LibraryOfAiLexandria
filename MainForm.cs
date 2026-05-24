@@ -165,7 +165,8 @@ namespace LibraryOfAiLexandria
                             if (string.IsNullOrWhiteSpace(settings.LastRunVersion) || (Version.TryParse(settings.LastRunVersion, out var lastV) && currV > lastV))
                             {
                                 settings.LastRunVersion = AutoUpdater.CurrentVersion;
-                                File.WriteAllText(settingsPath, System.Text.Json.JsonSerializer.Serialize(settings));
+                                var jsonOpts = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+                                File.WriteAllText(settingsPath, System.Text.Json.JsonSerializer.Serialize(settings, jsonOpts));
                                 await _botManager.PostStatusAsync(settings.StatusChannelId, $"*P.A.I.G.E. is online and has just updated to version {AutoUpdater.CurrentVersion}!*");
                             }
                             else
@@ -297,7 +298,8 @@ namespace LibraryOfAiLexandria
                     }
                     case "readAppSettings":
                         var settingsPath = Path.Combine(BrainPath, "settings.json");
-                        if (!File.Exists(settingsPath)) File.WriteAllText(settingsPath, System.Text.Json.JsonSerializer.Serialize(new AppSettings()));
+                        var jsonOptsRead = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+                        if (!File.Exists(settingsPath)) File.WriteAllText(settingsPath, System.Text.Json.JsonSerializer.Serialize(new AppSettings(), jsonOptsRead));
                         var settingsContent = File.ReadAllText(settingsPath);
                         var settingsReply = System.Text.Json.JsonSerializer.Serialize(new { action = "settingsData", settings = System.Text.Json.JsonDocument.Parse(settingsContent).RootElement });
                         webView.CoreWebView2.PostWebMessageAsJson(settingsReply);

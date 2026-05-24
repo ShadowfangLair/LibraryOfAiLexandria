@@ -204,11 +204,11 @@ window.chrome.webview.addEventListener('message', ev => {
     switch (data.action) {
         case 'settingsData':
             appSettings = data.settings || {};
-            settingMasterToken.value = appSettings.masterDiscordToken || '';
-            settingNovelAiKey.value = appSettings.novelAiKey || '';
-            settingStatusChannel.value = appSettings.statusChannelId || '';
-            settingGithubRepo.value = appSettings.githubRepo || '';
-            settingUpdateMode.value = appSettings.updateMode || 'prompt';
+            settingMasterToken.value = appSettings.masterDiscordToken || appSettings.MasterDiscordToken || '';
+            settingNovelAiKey.value = appSettings.novelAiKey || appSettings.NovelAiKey || '';
+            settingStatusChannel.value = appSettings.statusChannelId || appSettings.StatusChannelId || '';
+            settingGithubRepo.value = appSettings.githubRepo || appSettings.GithubRepo || '';
+            settingUpdateMode.value = appSettings.updateMode || appSettings.UpdateMode || 'prompt';
             break;
         case 'saveResult':
             if (!data.success) {
