@@ -1,5 +1,5 @@
 param (
-    [string]$Tag = "v1.0.5",
+    [string]$Tag = "v1.0.6",
     [string]$Token = ""
 )
 
