@@ -1,0 +1,109 @@
+/* Premium dark theme with glassmorphism */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    background: hsl(220, 10%, 12%);
+    color: hsl(210, 15%, 90%);
+    overflow-y: auto;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+.title {
+    font-size: 2.2rem;
+    font-weight: 600;
+    margin: 0;
+    background: linear-gradient(135deg, hsl(45, 90%, 55%), hsl(260, 80%, 70%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.subtitle {
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 100%;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+.card h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: hsl(210, 15%, 95%);
+}
+
+.config-textarea {
+    width: 100%;
+    height: 200px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    border-radius: 8px;
+    color: hsl(210, 15%, 95%);
+    font-family: monospace;
+    font-size: 0.9rem;
+    padding: 0.8rem;
+    resize: vertical;
+    outline: none;
+    backdrop-filter: blur(4px);
+}
+
+.log-area {
+    width: 100%;
+    height: 150px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    padding: 0.8rem;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: hsl(210, 15%, 85%);
+    backdrop-filter: blur(4px);
+}
+
+.buttons {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.15);
+    color: hsl(210, 15%, 95%);
+    transition: background 0.2s ease;
+}
+.btn:hover {
+    background: rgba(255,255,255,0.25);
+}
+.btn.primary {
+    background: linear-gradient(135deg, hsl(45, 90%, 55%), hsl(260, 80%, 70%));
+    color: #fff;
+}
