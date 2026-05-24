@@ -298,7 +298,7 @@ namespace LibraryOfAiLexandria
 
         private void ShowAbout()
         {
-            MessageBox.Show("Library of Ai‑Lexandria\nVersion 1.0\nA Windows companion UI for your Discord bot’s brain.", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"Library of Ai-Lexandria\nVersion {AutoUpdater.CurrentVersion}\nA Windows companion UI for your Discord bot's brain.", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void ShowToast(string title, string message)
