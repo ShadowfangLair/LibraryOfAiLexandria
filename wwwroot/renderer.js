@@ -27,8 +27,8 @@ const botsBody = document.getElementById('botsBody');
 
 // Settings UI elements
 const settingMasterToken = document.getElementById('settingMasterToken');
-const settingStatusChannel = document.getElementById('settingStatusChannel');
 const settingNovelAiKey = document.getElementById('settingNovelAiKey');
+const settingStatusChannel = document.getElementById('settingStatusChannel');
 const settingGithubRepo = document.getElementById('settingGithubRepo');
 const settingUpdateMode = document.getElementById('settingUpdateMode');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
@@ -40,7 +40,6 @@ const modalTitle = document.getElementById('modalTitle');
 const botName = document.getElementById('botName');
 const botChannel = document.getElementById('botChannel');
 const botAvatar = document.getElementById('botAvatar');
-const botNovelAi = document.getElementById('botNovelAi');
 const botPersona = document.getElementById('botPersona');
 const advancedToggle = document.getElementById('advancedToggle');
 const advancedSettings = document.getElementById('advancedSettings');
@@ -65,10 +64,10 @@ function post(action, payload) {
 // ---------- Settings ----------
 saveSettingsBtn.addEventListener('click', () => {
     appSettings.masterDiscordToken = settingMasterToken.value.trim();
+    appSettings.novelAiKey = settingNovelAiKey.value.trim();
     appSettings.statusChannelId = settingStatusChannel.value.trim();
     appSettings.githubRepo = settingGithubRepo.value.trim();
     appSettings.updateMode = settingUpdateMode.value;
-    appSettings.novelAiKey = settingNovelAiKey.value.trim();
     post('saveAppSettings', { settings: appSettings });
 });
 
@@ -108,7 +107,6 @@ function showModal(bot = null, idx = -1) {
     botName.value = bot?.name || '';
     botChannel.value = bot?.channelId || '';
     botAvatar.value = bot?.avatarUrl || '';
-    botNovelAi.value = bot?.novelAiKey || '';
     botPersona.value = bot?.systemPrompt || '';
     
     // advanced settings
@@ -153,7 +151,6 @@ saveBotBtn.addEventListener('click', () => {
         name,
         channelId: botChannel.value.trim(),
         avatarUrl: botAvatar.value.trim(),
-        novelAiKey: botNovelAi.value.trim(),
         systemPrompt: botSystemPrompt.value.trim(),
         advanced: advancedToggle.checked,
         novelAiModel: botModel.value,
@@ -208,8 +205,8 @@ window.chrome.webview.addEventListener('message', ev => {
         case 'settingsData':
             appSettings = data.settings || {};
             settingMasterToken.value = appSettings.masterDiscordToken || '';
-            settingStatusChannel.value = appSettings.statusChannelId || '';
             settingNovelAiKey.value = appSettings.novelAiKey || '';
+            settingStatusChannel.value = appSettings.statusChannelId || '';
             settingGithubRepo.value = appSettings.githubRepo || '';
             settingUpdateMode.value = appSettings.updateMode || 'prompt';
             break;

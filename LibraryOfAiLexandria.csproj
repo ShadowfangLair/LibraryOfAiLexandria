@@ -8,6 +8,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="TestEnums\**" />
+    <Content Remove="TestEnums\**" />
+    <EmbeddedResource Remove="TestEnums\**" />
+    <None Remove="TestEnums\**" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Discord.Net" Version="3.19.1" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.1665.44" />
   </ItemGroup>

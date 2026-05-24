@@ -13,7 +13,6 @@ namespace LibraryOfAiLexandria
         public string Name { get; set; } = string.Empty;
         public string ChannelId { get; set; } = string.Empty;
         public string AvatarUrl { get; set; } = string.Empty;
-        // NovelAiKey removed – global key stored in AppSettings (Paige)
         public bool Advanced { get; set; }
         public string NovelAiModel { get; set; } = "kayra-v1";
         public double NovelAiTemp { get; set; } = 1.0;
@@ -30,13 +29,11 @@ namespace LibraryOfAiLexandria
         private readonly MemoryStorage _memory;
         private readonly Action<string> _logCallback;
 
-        public CharacterInstance(BotConfig config, string globalNovelAiKey, Action<string> logCallback)
+        public CharacterInstance(BotConfig config, string novelAiKey, Action<string> logCallback)
         {
             Config = config;
             _logCallback = logCallback;
-            // Use the global key if config does not specify its own (deprecated)
-            var keyToUse = string.IsNullOrWhiteSpace(globalNovelAiKey) ? string.Empty : globalNovelAiKey;
-            _novelAi = new NovelAiClient(keyToUse);
+            _novelAi = new NovelAiClient(novelAiKey);
             _memory = new MemoryStorage(config.Name);
         }
 

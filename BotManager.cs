@@ -12,11 +12,9 @@ namespace LibraryOfAiLexandria
     {
         private DiscordSocketClient? _client;
         private readonly Dictionary<int, CharacterInstance> _characters = new();
+        private readonly Action<string> _logCallback;
+        private string _currentToken = string.Empty;
         private string _globalNovelAiKey = string.Empty;
-        public void SetGlobalNovelAiKey(string key)
-        {
-            _globalNovelAiKey = key;
-        }
 
         public event Action<string>? StartBotRequested;
         public event Action<string>? StopBotRequested;
@@ -27,6 +25,12 @@ namespace LibraryOfAiLexandria
         public BotManager(Action<string> logCallback)
         {
             _logCallback = logCallback;
+        }
+
+        public void SetGlobalNovelAiKey(string key)
+        {
+            _globalNovelAiKey = key?.Trim() ?? string.Empty;
+            _logCallback("[Master] Global NovelAI key updated.");
         }
 
         public async Task StartMasterAsync(string token)
@@ -94,7 +98,6 @@ namespace LibraryOfAiLexandria
 
         public void StartBot(int index, BotConfig config)
         {
-            // Pass the global NovelAI key (or empty) to each character instance
             _characters[index] = new CharacterInstance(config, _globalNovelAiKey, _logCallback);
             _logCallback($"[Master] Loaded character plugin: {config.Name} (Channel: {config.ChannelId})");
         }

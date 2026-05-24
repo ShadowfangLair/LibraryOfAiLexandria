@@ -20,8 +20,6 @@ namespace LibraryOfAiLexandria
         private BotManager _botManager;
         private AutoUpdater _autoUpdater;
         private static object _logLock = new object();
-        // Holds the latest loaded settings for quick access
-        private AppSettings _currentSettings = new AppSettings();
         
         private string AppDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibraryOfAiLexandria");
         private string BrainPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibraryOfAiLexandria", "brain");
@@ -156,7 +154,12 @@ namespace LibraryOfAiLexandria
                     var settings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(settingsPath), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     if (settings != null) 
                     {
-                        _currentSettings = settings;
+                        // Set the global NovelAI key from P.A.I.G.E.'s settings
+                        if (!string.IsNullOrWhiteSpace(settings.NovelAiKey))
+                        {
+                            _botManager.SetGlobalNovelAiKey(settings.NovelAiKey);
+                        }
+
                         if (Version.TryParse(AutoUpdater.CurrentVersion, out var currV))
                         {
                             if (string.IsNullOrWhiteSpace(settings.LastRunVersion) || (Version.TryParse(settings.LastRunVersion, out var lastV) && currV > lastV))
@@ -296,7 +299,6 @@ namespace LibraryOfAiLexandria
                         var settingsPath = Path.Combine(BrainPath, "settings.json");
                         if (!File.Exists(settingsPath)) File.WriteAllText(settingsPath, System.Text.Json.JsonSerializer.Serialize(new AppSettings()));
                         var settingsContent = File.ReadAllText(settingsPath);
-                        _currentSettings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(settingsContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new AppSettings();
                         var settingsReply = System.Text.Json.JsonSerializer.Serialize(new { action = "settingsData", settings = System.Text.Json.JsonDocument.Parse(settingsContent).RootElement });
                         webView.CoreWebView2.PostWebMessageAsJson(settingsReply);
                         break;
@@ -307,17 +309,18 @@ namespace LibraryOfAiLexandria
                         webView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(new { action = "saveResult", success = true }));
                         ShowToast("Settings Saved", "Auto-updater and Master Token saved.");
                         var s = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(newSettings, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        if (s != null && !string.IsNullOrWhiteSpace(s.MasterDiscordToken))
-                        {
-                            await _botManager.StartMasterAsync(s.MasterDiscordToken);
-                        }
-                        // Set the global NovelAI key for all bots
                         if (s != null)
                         {
-                            _botManager.SetGlobalNovelAiKey(s.NovelAiKey ?? "");
+                            // Update the global NovelAI key whenever settings are saved
+                            if (!string.IsNullOrWhiteSpace(s.NovelAiKey))
+                            {
+                                _botManager.SetGlobalNovelAiKey(s.NovelAiKey);
+                            }
+                            if (!string.IsNullOrWhiteSpace(s.MasterDiscordToken))
+                            {
+                                await _botManager.StartMasterAsync(s.MasterDiscordToken);
+                            }
                         }
-                        // Update the in‑memory settings for immediate use
-                        _currentSettings = s ?? new AppSettings();
                         break;
                     case "importCard":
                         using (var ofd = new OpenFileDialog())
@@ -340,29 +343,12 @@ namespace LibraryOfAiLexandria
                         }
                         break;
                     case "checkUpdates":
-                        // Reload settings from disk to ensure latest values
-                        var settingsPath = Path.Combine(BrainPath, "settings.json");
-                        if (!File.Exists(settingsPath))
+                        var settingsPath3 = Path.Combine(BrainPath, "settings.json");
+                        if (File.Exists(settingsPath3))
                         {
-                            ShowToast("Update Check", "Settings file not found. Please configure settings first.");
-                            break;
+                            var currentSettings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(settingsPath3), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            if (currentSettings != null) await _autoUpdater.CheckForUpdatesAsync(currentSettings);
                         }
-                        var freshSettings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(settingsPath), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        if (freshSettings == null)
-                        {
-                            ShowToast("Update Check", "Failed to read settings. Please check the file.");
-                            break;
-                        }
-                        // Validate GitHub repo
-                        if (string.IsNullOrWhiteSpace(freshSettings.GithubRepo))
-                        {
-                            ShowToast("Update Check", "GitHub repository not configured. Please set it in Settings.");
-                            break;
-                        }
-                        // Perform the update check
-                        ShowToast("Checking for Updates", "Contacting GitHub for latest release...");
-                        await _autoUpdater.CheckForUpdatesAsync(freshSettings);
-                        ShowToast("Update Check", "Completed. Check logs for details.");
                         break;
                 }
             }

@@ -64,13 +64,13 @@
                 <small>Used for controlling bots remotely via Discord.</small>
             </div>
             <div class="form-group">
-                <label for="settingStatusChannel">P.A.I.G.E. Status Update Channel ID</label>
-                <input type="text" id="settingStatusChannel" class="input" placeholder="e.g. 1507775019764158675" />
+                <label for="settingNovelAiKey">P.A.I.G.E. NovelAI API Key</label>
+                <input type="password" id="settingNovelAiKey" class="input" placeholder="Paste NovelAI key here..." />
+                <small>All characters will use this key to generate responses. Set it once here.</small>
             </div>
             <div class="form-group">
-                <label for="settingNovelAiKey">NovelAI API Key (Master)</label>
-                <input type="password" id="settingNovelAiKey" class="input" placeholder="Paste NovelAI key here..." />
-                <small>Used for all character plugins unless overridden.</small>
+                <label for="settingStatusChannel">P.A.I.G.E. Status Update Channel ID</label>
+                <input type="text" id="settingStatusChannel" class="input" placeholder="e.g. 1507775019764158675" />
                 <small>Where P.A.I.G.E. will drop changelogs and boot status.</small>
             </div>
             <hr style="border:1px solid rgba(255,255,255,0.1); margin: 1.5rem 0;" />
@@ -115,10 +115,7 @@
                 <label>Avatar Image URL (Optional):</label>
                 <input type="text" id="botAvatar" placeholder="https://.../image.png" class="input" />
             </div>
-            <div class="form-group">
-                <label>NovelAI API Key:</label>
-                <input type="password" id="botNovelAi" placeholder="Paste NovelAI key here" class="input">
-            </div>
+
             <div class="form-group">
                 <label>Character Persona / System Prompt:</label>
                 <textarea id="botPersona" rows="4" placeholder="Describe who this bot is, how it should act, its backstory, etc." class="input"></textarea>
