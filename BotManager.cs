@@ -15,6 +15,10 @@ namespace LibraryOfAiLexandria
         private readonly Action<string> _logCallback;
         private string _currentToken = string.Empty;
 
+        public event Action<string>? StartBotRequested;
+        public event Action<string>? StopBotRequested;
+        public event Action<string>? ToggleMentionModeRequested;
+
         public bool IsMasterConnected => _client?.ConnectionState == ConnectionState.Connected;
 
         public BotManager(Action<string> logCallback)
@@ -121,23 +125,38 @@ namespace LibraryOfAiLexandria
                 return;
             }
 
+            // Check if this is a PAIGE start/stop/restart command
+            var contentLower = message.Content.ToLower().Trim();
+            if (contentLower.StartsWith("/paige-start-") || contentLower.StartsWith("/paige-stop-") || contentLower.StartsWith("/paige-restart-bots") || contentLower.StartsWith("/paige-mention-"))
+            {
+                await HandlePaigeCommandAsync(message);
+                return;
+            }
+
             // Check for Auto-Ingestion of SillyTavern Character Cards
             if (message.Attachments.Any())
             {
                 await HandleAutoIngestionAsync(message);
             }
 
-            // Find if any character is confined to this channel
+            // Find if any character is confined to this channel, or if Mention Mode is active
             var channelStr = message.Channel.Id.ToString();
             var character = _characters.Values.FirstOrDefault(c => c.Config.ChannelId == channelStr);
 
+            var cleanMessage = message.CleanContent.Trim();
+
             if (character == null)
             {
-                // No character assigned to this channel
-                return;
+                // No character assigned to this channel. Let's check for Mention Mode!
+                var lowerMessage = cleanMessage.ToLower();
+                character = _characters.Values.FirstOrDefault(c => c.Config.MentionMode && lowerMessage.Contains(c.Config.Name.ToLower()));
+                
+                if (character == null)
+                {
+                    // No character assigned to this channel and no mention mode match
+                    return;
+                }
             }
-
-            var cleanMessage = message.CleanContent.Trim();
             
             // Set typing indicator
             using var typing = message.Channel.EnterTypingState();
@@ -224,6 +243,64 @@ namespace LibraryOfAiLexandria
             catch (Exception ex)
             {
                 _logCallback($"[Master] Failed to auto-ingest card: {ex.Message}");
+            }
+        }
+
+        private async Task HandlePaigeCommandAsync(SocketMessage message)
+        {
+            var text = message.Content.Trim();
+            if (text.StartsWith("/paige-restart-bots", StringComparison.OrdinalIgnoreCase))
+            {
+                _logCallback("[Master] Received remote restart command.");
+                var keys = _characters.Keys.ToList();
+                foreach(var k in keys) StopBot(k);
+                await message.Channel.SendMessageAsync("*[P.A.I.G.E.] Shutting down all active characters. Please start them again manually or via auto-start.*");
+                return;
+            }
+
+            if (text.StartsWith("/paige-start-", StringComparison.OrdinalIgnoreCase))
+            {
+                var name = text.Substring(13).Trim();
+                _logCallback($"[Master] Remote start requested for '{name}'.");
+                StartBotRequested?.Invoke(name);
+                await message.Channel.SendMessageAsync($"*[P.A.I.G.E.] Attempting to boot up '{name}'...*");
+                return;
+            }
+
+            if (text.StartsWith("/paige-stop-", StringComparison.OrdinalIgnoreCase))
+            {
+                var name = text.Substring(12).Trim();
+                _logCallback($"[Master] Remote stop requested for '{name}'.");
+                StopBotRequested?.Invoke(name);
+                await message.Channel.SendMessageAsync($"*[P.A.I.G.E.] Shutting down '{name}'...*");
+                return;
+            }
+
+            if (text.StartsWith("/paige-mention-", StringComparison.OrdinalIgnoreCase))
+            {
+                var name = text.Substring(15).Trim();
+                _logCallback($"[Master] Remote mention mode toggle requested for '{name}'.");
+                ToggleMentionModeRequested?.Invoke(name);
+                await message.Channel.SendMessageAsync($"*[P.A.I.G.E.] Toggling mention mode for '{name}'...*");
+                return;
+            }
+        }
+
+        public async Task PostStatusAsync(string channelId, string message)
+        {
+            if (_client == null || !IsMasterConnected || !ulong.TryParse(channelId, out var cid)) return;
+
+            try
+            {
+                var channel = await _client.GetChannelAsync(cid) as ITextChannel;
+                if (channel != null)
+                {
+                    await channel.SendMessageAsync(message);
+                }
+            }
+            catch(Exception ex)
+            {
+                _logCallback($"[Master] Failed to post status: {ex.Message}");
             }
         }
 

@@ -27,6 +27,7 @@ const botsBody = document.getElementById('botsBody');
 
 // Settings UI elements
 const settingMasterToken = document.getElementById('settingMasterToken');
+const settingStatusChannel = document.getElementById('settingStatusChannel');
 const settingGithubRepo = document.getElementById('settingGithubRepo');
 const settingUpdateMode = document.getElementById('settingUpdateMode');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
@@ -45,11 +46,15 @@ const advancedSettings = document.getElementById('advancedSettings');
 const botModel = document.getElementById('botModel');
 const botTemp = document.getElementById('botTemp');
 const botMemory = document.getElementById('botMemory');
+const botSystemPrompt = document.getElementById('botSystemPrompt');
+const botAutoStart = document.getElementById('botAutoStart');
+const botMentionMode = document.getElementById('botMentionMode');
 
 const cancelBotBtn = document.getElementById('cancelBotBtn');
 const saveBotBtn = document.getElementById('saveBotBtn');
 
 let editingBotIndex = -1;
+let appSettings = {};
 
 // Helper to post messages to host
 function post(action, payload) {
@@ -58,12 +63,11 @@ function post(action, payload) {
 
 // ---------- Settings ----------
 saveSettingsBtn.addEventListener('click', () => {
-    const settings = {
-        masterDiscordToken: settingMasterToken.value.trim(),
-        githubRepo: settingGithubRepo.value.trim(),
-        updateMode: settingUpdateMode.value
-    };
-    post('saveAppSettings', { settings });
+    appSettings.masterDiscordToken = settingMasterToken.value.trim();
+    appSettings.statusChannelId = settingStatusChannel.value.trim();
+    appSettings.githubRepo = settingGithubRepo.value.trim();
+    appSettings.updateMode = settingUpdateMode.value;
+    post('saveAppSettings', { settings: appSettings });
 });
 
 checkUpdatesBtn.addEventListener('click', () => {
@@ -109,6 +113,9 @@ function showModal(bot = null, idx = -1) {
     botModel.value = bot?.novelAiModel || 'kayra-v1';
     botTemp.value = bot?.novelAiTemp || '1.0';
     botMemory.value = bot?.memoryLimit || '20';
+    botSystemPrompt.value = bot?.systemPrompt || '';
+    botAutoStart.checked = !!bot?.autoStart;
+    botMentionMode.checked = !!bot?.mentionMode;
     
     advancedToggle.checked = !!bot?.advanced;
     advancedSettings.style.display = advancedToggle.checked ? 'block' : 'none';
@@ -145,11 +152,13 @@ saveBotBtn.addEventListener('click', () => {
         channelId: botChannel.value.trim(),
         avatarUrl: botAvatar.value.trim(),
         novelAiKey: botNovelAi.value.trim(),
-        systemPrompt: botPersona.value.trim(),
+        systemPrompt: botSystemPrompt.value.trim(),
         advanced: advancedToggle.checked,
         novelAiModel: botModel.value,
         novelAiTemp: parseFloat(botTemp.value) || 1.0,
         memoryLimit: parseInt(botMemory.value, 10) || 20,
+        autoStart: botAutoStart.checked,
+        mentionMode: botMentionMode.checked,
         connected: false
     };
 
@@ -195,9 +204,11 @@ window.chrome.webview.addEventListener('message', ev => {
     const data = ev.data;
     switch (data.action) {
         case 'settingsData':
-            settingMasterToken.value = data.settings?.masterDiscordToken || '';
-            settingGithubRepo.value = data.settings?.githubRepo || '';
-            settingUpdateMode.value = data.settings?.updateMode || 'prompt';
+            appSettings = data.settings || {};
+            settingMasterToken.value = appSettings.masterDiscordToken || '';
+            settingStatusChannel.value = appSettings.statusChannelId || '';
+            settingGithubRepo.value = appSettings.githubRepo || '';
+            settingUpdateMode.value = appSettings.updateMode || 'prompt';
             break;
         case 'saveResult':
             if (!data.success) {

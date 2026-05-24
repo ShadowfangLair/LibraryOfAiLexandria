@@ -139,8 +139,12 @@ namespace LibraryOfAiLexandria
                     File.AppendAllText(logFile, $"[{DateTime.Now:HH:mm:ss}] {msg}\n");
                 }
             });
+
+            _botManager.StartBotRequested += OnStartBotRequested;
+            _botManager.StopBotRequested += OnStopBotRequested;
+            _botManager.ToggleMentionModeRequested += OnToggleMentionModeRequested;
             
-            // Check for updates shortly after startup
+            // Check for updates and post boot status
             Task.Run(async () => 
             {
                 await Task.Delay(3000);
@@ -148,7 +152,43 @@ namespace LibraryOfAiLexandria
                 if (File.Exists(settingsPath))
                 {
                     var settings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(settingsPath), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    if (settings != null) await _autoUpdater.CheckForUpdatesAsync(settings);
+                    if (settings != null) 
+                    {
+                        if (Version.TryParse(AutoUpdater.CurrentVersion, out var currV))
+                        {
+                            if (string.IsNullOrWhiteSpace(settings.LastRunVersion) || (Version.TryParse(settings.LastRunVersion, out var lastV) && currV > lastV))
+                            {
+                                settings.LastRunVersion = AutoUpdater.CurrentVersion;
+                                File.WriteAllText(settingsPath, System.Text.Json.JsonSerializer.Serialize(settings));
+                                await _botManager.PostStatusAsync(settings.StatusChannelId, $"*P.A.I.G.E. is online and has just updated to version {AutoUpdater.CurrentVersion}!*");
+                            }
+                            else
+                            {
+                                await _botManager.PostStatusAsync(settings.StatusChannelId, "*P.A.I.G.E. system boot sequence complete. Online and standing by.*");
+                            }
+                        }
+
+                        await _autoUpdater.CheckForUpdatesAsync(settings);
+                    }
+                }
+            });
+
+            // Trigger auto-start bots
+            Task.Run(() => 
+            {
+                var botsPath = Path.Combine(BrainPath, "bots.json");
+                if (!File.Exists(botsPath)) return;
+                var botsContent = File.ReadAllText(botsPath);
+                var botsArray = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<BotConfig>>(botsContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (botsArray != null)
+                {
+                    for (int i = 0; i < botsArray.Count; i++)
+                    {
+                        if (botsArray[i].AutoStart)
+                        {
+                            StartBotFromUi(i);
+                        }
+                    }
                 }
             });
         }
@@ -328,7 +368,67 @@ namespace LibraryOfAiLexandria
             }
         }
 
+        private void OnStartBotRequested(string name)
+        {
+            var botsPath = Path.Combine(BrainPath, "bots.json");
+            if (!File.Exists(botsPath)) return;
+            var list = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<BotConfig>>(File.ReadAllText(botsPath), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (list == null) return;
 
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    _botManager.StartBot(i, list[i]);
+                    break;
+                }
+            }
+        }
+
+        private void OnStopBotRequested(string name)
+        {
+            var botsPath = Path.Combine(BrainPath, "bots.json");
+            if (!File.Exists(botsPath)) return;
+            var list = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<BotConfig>>(File.ReadAllText(botsPath), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (list == null) return;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    _botManager.StopBot(i);
+                    break;
+                }
+            }
+        }
+
+        private void OnToggleMentionModeRequested(string name)
+        {
+            var botsPath = Path.Combine(BrainPath, "bots.json");
+            if (!File.Exists(botsPath)) return;
+            var list = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<BotConfig>>(File.ReadAllText(botsPath), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (list == null) return;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    list[i].MentionMode = !list[i].MentionMode;
+                    File.WriteAllText(botsPath, System.Text.Json.JsonSerializer.Serialize(list));
+
+                    // If it's running, restart it to apply config immediately
+                    if (_botManager.IsBotRunning(i))
+                    {
+                        _botManager.StopBot(i);
+                        _botManager.StartBot(i, list[i]);
+                    }
+                    
+                    var botsReply = System.Text.Json.JsonSerializer.Serialize(new { action = "botsData", bots = list });
+                    webView.CoreWebView2.PostWebMessageAsJson(botsReply);
+                    break;
+                }
+            }
+        }
 
         private void ShowAbout()
         {

@@ -12,11 +12,13 @@ namespace LibraryOfAiLexandria
         public string GithubRepo { get; set; } = string.Empty;
         public string UpdateMode { get; set; } = "prompt";
         public string MasterDiscordToken { get; set; } = string.Empty;
+        public string StatusChannelId { get; set; } = "1507775019764158675";
+        public string LastRunVersion { get; set; } = string.Empty;
     }
 
     public class AutoUpdater
     {
-        public const string CurrentVersion = "1.0.13";
+        public const string CurrentVersion = "1.0.15";
         private readonly Action<string, string> _uiToastCallback;
         private readonly Action<string> _logCallback;
 

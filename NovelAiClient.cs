@@ -28,7 +28,7 @@ namespace LibraryOfAiLexandria
             var requestBody = new
             {
                 input = prompt,
-                model = model,
+                model = model?.Trim() ?? "kayra-v1",
                 parameters = new
                 {
                     use_string = true,

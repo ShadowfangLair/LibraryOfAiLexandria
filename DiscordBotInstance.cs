@@ -19,6 +19,8 @@ namespace LibraryOfAiLexandria
         public double NovelAiTemp { get; set; } = 1.0;
         public int MemoryLimit { get; set; } = 20;
         public string SystemPrompt { get; set; } = string.Empty;
+        public bool AutoStart { get; set; }
+        public bool MentionMode { get; set; }
     }
 
     public class CharacterInstance

@@ -2,6 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <style>
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input {
+            width: auto;
+            accent-color: var(--primary);
+        }
+    </style>
     <title>Library of Ai-Lexandria</title>
     <link rel="stylesheet" href="index.css">
 </head>
@@ -48,9 +59,14 @@
         <section id="tab-settings" class="card tab-content" style="display: none;">
             <h2>Master Brain Settings (P.A.I.G.E.)</h2>
             <div class="form-group">
-                <label>Master Discord Token (Required):</label>
-                <input type="password" id="settingMasterToken" class="input" placeholder="Paste Discord Bot Token here" />
-                <small style="color:var(--text-dim);">This token powers all character Webhooks.</small>
+                <label for="settingMasterToken">Master Discord Bot Token (P.A.I.G.E.)</label>
+                <input type="password" id="settingMasterToken" class="input" placeholder="Paste bot token here..." />
+                <small>Used for controlling bots remotely via Discord.</small>
+            </div>
+            <div class="form-group">
+                <label for="settingStatusChannel">P.A.I.G.E. Status Update Channel ID</label>
+                <input type="text" id="settingStatusChannel" class="input" placeholder="e.g. 1507775019764158675" />
+                <small>Where P.A.I.G.E. will drop changelogs and boot status.</small>
             </div>
             <hr style="border:1px solid rgba(255,255,255,0.1); margin: 1.5rem 0;" />
             <h2>Auto-Updater</h2>
@@ -124,6 +140,18 @@
                 <div class="form-group">
                     <label>Temperature (Creativity):</label>
                     <input type="number" id="botTemp" step="0.1" value="1.0" class="input" />
+                </div>
+                <div class="form-group">
+                    <label for="botSystemPrompt">System Prompt (optional)</label>
+                    <textarea id="botSystemPrompt" class="input" rows="3" placeholder="Describe the character's persona and scenario..."></textarea>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="botAutoStart" />
+                    <label for="botAutoStart">Start character automatically on boot</label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="botMentionMode" />
+                    <label for="botMentionMode">Mention Mode (Respond when @mentioned in open channels)</label>
                 </div>
                 <div class="form-group">
                     <label>Memory Limit (Messages):</label>
