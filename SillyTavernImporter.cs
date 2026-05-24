@@ -30,20 +30,34 @@ namespace LibraryOfAiLexandria
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
                 
+                var config = new BotConfig();
+
                 // SillyTavern V2 spec uses a 'data' object inside the root
                 if (root.TryGetProperty("data", out var data))
                 {
-                    var config = new BotConfig();
-                    
                     if (data.TryGetProperty("name", out var nameProp))
                         config.Name = nameProp.GetString() ?? "Unknown Character";
                         
-                    if (data.TryGetProperty("description", out var descProp))
+                    if (data.TryGetProperty("description", out var descProp) && !string.IsNullOrWhiteSpace(descProp.GetString()))
                         config.SystemPrompt = descProp.GetString() ?? "";
+                    else if (data.TryGetProperty("persona", out var personaProp))
+                        config.SystemPrompt = personaProp.GetString() ?? "";
+                }
+                else
+                {
+                    // V1 or raw spec (properties at root)
+                    if (root.TryGetProperty("name", out var nameProp))
+                        config.Name = nameProp.GetString() ?? "Unknown Character";
 
-                    // For avatarUrl, if it's a PNG, we might not have a URL. We'd have to host the image somewhere.
-                    // For now we leave AvatarUrl blank unless they manually fill it.
+                    if (root.TryGetProperty("description", out var descProp) && !string.IsNullOrWhiteSpace(descProp.GetString()))
+                        config.SystemPrompt = descProp.GetString() ?? "";
+                    else if (root.TryGetProperty("persona", out var personaProp))
+                        config.SystemPrompt = personaProp.GetString() ?? "";
+                }
 
+                // If we successfully got a name, return it
+                if (!string.IsNullOrWhiteSpace(config.Name) && config.Name != "Unknown Character")
+                {
                     return config;
                 }
             }
